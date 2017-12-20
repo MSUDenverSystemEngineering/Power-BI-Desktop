@@ -1,135 +1,45 @@
-﻿<#
-.SYNOPSIS
-	Displays a graphical console to browse the help for the App Deployment Toolkit functions
-.DESCRIPTION
-	Displays a graphical console to browse the help for the App Deployment Toolkit functions
-.EXAMPLE
-	AppDeployToolkitHelp.ps1
-.NOTES
-.LINK
-	http://psappdeploytoolkit.com
-#>
+## Define variables
+$vmwfs14 = New-PSSession -ComputerName VMWFS14
+$applicationName = "Staging - ${Env:APPVEYOR_PROJECT_NAME}"
+$stagingFolder = "\\vmwfs14\H$\Archive\SCCM\Staging\${Env:APPVEYOR_PROJECT_NAME}\${Env:APPVEYOR_BUILD_VERSION}"
+$install = "Deploy-Application.exe -DeploymentType `"Install`" -AllowRebootPassThru"
+$uninstall = "Deploy-Application.exe -DeploymentType `"Uninstall`" -AllowRebootPassThru"
 
-##*===============================================
-##* VARIABLE DECLARATION
-##*===============================================
+## Remove unneeded files from the repository before uploading to the staging directory
+Remove-Item -Path "${Env:APPLICATION_PATH}\${Env:APPVEYOR_PROJECT_SLUG}\appveyor.yml"
+Remove-Item -Path "${Env:APPLICATION_PATH}\${Env:APPVEYOR_PROJECT_SLUG}\deploy.ps1"
+Remove-Item -Path "${Env:APPLICATION_PATH}\${Env:APPVEYOR_PROJECT_SLUG}\.gitignore" -Force
+Remove-Item -Path "${Env:APPLICATION_PATH}\${Env:APPVEYOR_PROJECT_SLUG}\.gitattributes" -Force
+Remove-Item -Path "${Env:APPLICATION_PATH}\${Env:APPVEYOR_PROJECT_SLUG}\.git" -Recurse -Force
+Remove-Item -Path "${Env:APPLICATION_PATH}\${Env:APPVEYOR_PROJECT_SLUG}\Tests" -Recurse
 
-## Variables: Script
-[string]$appDeployToolkitHelpName = 'PSAppDeployToolkitHelp'
-[string]$appDeployHelpScriptFriendlyName = 'App Deploy Toolkit Help'
-[version]$appDeployHelpScriptVersion = [version]'3.6.5'
-[string]$appDeployHelpScriptDate = '02/12/2017'
+## Upload the repository to the staging directory, appending the build number so we don't overwrite our previous work.
+Copy-Item -Path "${Env:APPLICATION_PATH}\${Env:APPVEYOR_PROJECT_SLUG}" -Destination "H:\Archive\SCCM\Staging\${Env:APPVEYOR_PROJECT_NAME}\${Env:APPVEYOR_BUILD_VERSION}" -ToSession $vmwfs14 -Recurse
 
-## Variables: Environment
-[string]$scriptDirectory = Split-Path -Path $MyInvocation.MyCommand.Definition -Parent
-#  Dot source the App Deploy Toolkit Functions
-. "$scriptDirectory\AppDeployToolkitMain.ps1" -DisableLogging
+## Import cmdlets for ConfigMgr
+Import-Module -Name "$(Split-Path $Env:SMS_ADMIN_UI_PATH)\ConfigurationManager.psd1"
 
-##*===============================================
-##* END VARIABLE DECLARATION
-##*===============================================
+## Connect to the ConfigMgr site
+New-PSDrive -Name "MS1" -PSProvider "AdminUI.PS.Provider\CMSite" -Root "VMWAS117" -Description "MS1"
 
-##*===============================================
-##* FUNCTION LISTINGS
-##*===============================================
+## Set the active PSDrive to the ConfigMgr site
+Set-Location -Path MS1:
 
-Function Show-HelpConsole {
-	## Import the Assemblies
-	Add-Type -AssemblyName 'System.Windows.Forms' -ErrorAction 'Stop'
-	Add-Type -AssemblyName System.Drawing -ErrorAction 'Stop'
+## Create the ConfigMgr application (if if doesn't exist) in the format "Staging - GitHub project name"
+## This also adds a link to the GitHub repository in the Administrator Comments field for reference and checks the box next to "Allow this application to be installed from the Install Application task sequence action without being deployed"
+## Reference: https://docs.microsoft.com/en-us/powershell/sccm/configurationmanager/vlatest/new-cmapplication
+New-CMApplication -Name $applicationName -Description "Repository: https://github.com/${Env:APPVEYOR_REPO_NAME}" -AutoInstall $true
 
-	## Form Objects
-	$HelpForm = New-Object -TypeName 'System.Windows.Forms.Form'
-	$HelpListBox = New-Object -TypeName 'System.Windows.Forms.ListBox'
-	$HelpTextBox = New-Object -TypeName 'System.Windows.Forms.RichTextBox'
-	$InitialFormWindowState = New-Object -TypeName 'System.Windows.Forms.FormWindowState'
+## Create a new script deployment type with standard settings for PowerShell App Deployment Toolkit
+## You'll need to manually update the deployment type's detection method to find the software, make any other needed customizations to the application and deployment type, then distribute your content when ready.
+## Reference: https://docs.microsoft.com/en-us/powershell/sccm/configurationmanager/vlatest/add-cmscriptdeploymenttype
+Get-CMApplication -Name $applicationName | Add-CMScriptDeploymentType -DeploymentTypeName "${applicationName} ${Env:APPVEYOR_BUILD_VERSION}" -InstallCommand $install -ScriptLanguage "PowerShell" -ScriptText "Update this detection method to accurately locate the application." -ContentLocation $stagingFolder -EnableBranchCache -InstallationBehaviorType "InstallForSystem" -LogonRequirementType "WhetherOrNotUserLoggedOn" -MaximumRuntimeMins 720 -UninstallCommand $uninstall -UserInteractionMode "Normal"
 
-	## Form Code
-	$System_Drawing_Size = New-Object -TypeName 'System.Drawing.Size'
-	$System_Drawing_Size.Height = 665
-	$System_Drawing_Size.Width = 957
-	$HelpForm.ClientSize = $System_Drawing_Size
-	$HelpForm.DataBindings.DefaultDataSourceUpdateMode = 0
-	$HelpForm.Name = 'HelpForm'
-	$HelpForm.Text = 'PowerShell App Deployment Toolkit Help Console'
-	$HelpForm.WindowState = 'Normal'
-	$HelpForm.ShowInTaskbar = $true
-	$HelpForm.FormBorderStyle = 'Fixed3D'
-	$HelpForm.MaximizeBox = $false
-	$HelpForm.Icon = New-Object -TypeName 'System.Drawing.Icon' -ArgumentList $AppDeployLogoIcon
-	$HelpListBox.Anchor = 7
-	$HelpListBox.BorderStyle = 1
-	$HelpListBox.DataBindings.DefaultDataSourceUpdateMode = 0
-	$HelpListBox.Font = New-Object -TypeName 'System.Drawing.Font' -ArgumentList ('Microsoft Sans Serif', 9.75, 1, 3, 1)
-	$HelpListBox.FormattingEnabled = $true
-	$HelpListBox.ItemHeight = 16
-	$System_Drawing_Point = New-Object -TypeName 'System.Drawing.Point'
-	$System_Drawing_Point.X = 0
-	$System_Drawing_Point.Y = 0
-	$HelpListBox.Location = $System_Drawing_Point
-	$HelpListBox.Name = 'HelpListBox'
-	$System_Drawing_Size = New-Object -TypeName 'System.Drawing.Size'
-	$System_Drawing_Size.Height = 658
-	$System_Drawing_Size.Width = 271
-	$HelpListBox.Size = $System_Drawing_Size
-	$HelpListBox.Sorted = $true
-	$HelpListBox.TabIndex = 2
-	$HelpListBox.add_SelectedIndexChanged({ $HelpTextBox.Text = Get-Help -Name $HelpListBox.SelectedItem -Detailed | Out-String })
-	$helpFunctions = Get-Command -CommandType 'Function' | Where-Object { ($_.HelpUri -match 'psappdeploytoolkit') -and ($_.Definition -notmatch 'internal script function') } | Select-Object -ExpandProperty Name
-	ForEach ($helpFunction in $helpFunctions) {
-		$null = $HelpListBox.Items.Add($helpFunction)
-	}
-	$HelpForm.Controls.Add($HelpListBox)
-	$HelpTextBox.Anchor = 11
-	$HelpTextBox.BorderStyle = 1
-	$HelpTextBox.DataBindings.DefaultDataSourceUpdateMode = 0
-	$HelpTextBox.Font = New-Object -TypeName 'System.Drawing.Font' -ArgumentList ('Microsoft Sans Serif', 8.5, 0, 3, 1)
-	$HelpTextBox.ForeColor = [System.Drawing.Color]::FromArgb(255, 0, 0, 0)
-	$System_Drawing_Point = New-Object -TypeName System.Drawing.Point
-	$System_Drawing_Point.X = 277
-	$System_Drawing_Point.Y = 0
-	$HelpTextBox.Location = $System_Drawing_Point
-	$HelpTextBox.Name = 'HelpTextBox'
-	$HelpTextBox.ReadOnly = $True
-	$System_Drawing_Size = New-Object -TypeName 'System.Drawing.Size'
-	$System_Drawing_Size.Height = 658
-	$System_Drawing_Size.Width = 680
-	$HelpTextBox.Size = $System_Drawing_Size
-	$HelpTextBox.TabIndex = 1
-	$HelpTextBox.Text = ''
-	$HelpForm.Controls.Add($HelpTextBox)
-
-	## Save the initial state of the form
-	$InitialFormWindowState = $HelpForm.WindowState
-	## Init the OnLoad event to correct the initial state of the form
-	$HelpForm.add_Load($OnLoadForm_StateCorrection)
-	## Show the Form
-	$null = $HelpForm.ShowDialog()
-}
-
-##*===============================================
-##* END FUNCTION LISTINGS
-##*===============================================
-
-##*===============================================
-##* SCRIPT BODY
-##*===============================================
-
-Write-Log -Message "Load [$appDeployHelpScriptFriendlyName] console..." -Source $appDeployToolkitHelpName
-
-## Show the help console
-Show-HelpConsole
-
-Write-Log -Message "[$appDeployHelpScriptFriendlyName] console closed." -Source $appDeployToolkitHelpName
-
-##*===============================================
-##* END SCRIPT BODY
-##*===============================================
 # SIG # Begin signature block
 # MIIU4wYJKoZIhvcNAQcCoIIU1DCCFNACAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCD6MK5iEuq8TPY0
-# 9kfcx0PnV5aTPbWlsoKZKHRUBa+WcqCCD4cwggQUMIIC/KADAgECAgsEAAAAAAEv
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCti+bEaul7bltu
+# 6UxB4cUmfl9qf8UY1dzQeXHveOJDsqCCD4cwggQUMIIC/KADAgECAgsEAAAAAAEv
 # TuFS1zANBgkqhkiG9w0BAQUFADBXMQswCQYDVQQGEwJCRTEZMBcGA1UEChMQR2xv
 # YmFsU2lnbiBudi1zYTEQMA4GA1UECxMHUm9vdCBDQTEbMBkGA1UEAxMSR2xvYmFs
 # U2lnbiBSb290IENBMB4XDTExMDQxMzEwMDAwMFoXDTI4MDEyODEyMDAwMFowUjEL
@@ -216,26 +126,26 @@ Write-Log -Message "[$appDeployHelpScriptFriendlyName] console closed." -Source 
 # FgNlZHUxGTAXBgoJkiaJk/IsZAEZFgltc3VkZW52ZXIxFTATBgoJkiaJk/IsZAEZ
 # FgV3aW5hZDEZMBcGA1UEAxMQd2luYWQtVk1XQ0EwMS1DQQITfwAAACITuo77mvOv
 # 9AABAAAAIjANBglghkgBZQMEAgEFAKBmMBgGCisGAQQBgjcCAQwxCjAIoAKAAKEC
-# gAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwLwYJKoZIhvcNAQkEMSIEIBig
-# k2NNC6Slwm0oJY2tRbbyo8A/LCXuDETeUjxFphUBMA0GCSqGSIb3DQEBAQUABIIB
-# AJh83hBq0pbmGfvUKI233XqlcZWaSyLhD+FB00GL4ZqP3jCgdivxw9x4En2V/TH9
-# GIc84DjXeHizXKWFY0S/w7wDaqNuseCZEKs7PqKqU4EDAe/T6sgOfAcbPqehCgoD
-# oTWAQKMpqtaUYCtmgm0TYELIPZZXcO214pdptwmYTO/iQKFqA/hgqQogfgdoABiP
-# AR1kgTKmChQRP7bt4je80kzC5rYbbHx5MdZz3lT6RNKL5LUM+lxKAgWL91yLcmAf
-# DjsGJiUSgRlPLnu20ZSoyBsxZQn3vrcALLSiP30l1w5SjlwU70T5GaxKdbgsAWnW
-# AYmlWiHFA53IFAhUDTDhZqGhggKiMIICngYJKoZIhvcNAQkGMYICjzCCAosCAQEw
+# gAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwLwYJKoZIhvcNAQkEMSIEIBDV
+# Nklhk5Y7YoDzaiIofAtoOHSOn+AsmV2JRSU32i8mMA0GCSqGSIb3DQEBAQUABIIB
+# AK8Rxkxi4PTQpvLlIcz0pg1/7QdU4Yuyf8KFQHYwOOpGrXAnLfGXftmfA1y3lVm3
+# YT8CFLRf7ij6KcFPM8fDfZC2ZN1wMXbcf1uez3xyn1zc/sl2z5Z9WwG5uGDknpCT
+# MdiTM1KchMDnb2aeyjZPVy7XOr8emeQrYTf49U2sLoANdkhVlrofQtmS8yk76/O0
+# NQxvlIGPIlYSKuN+V0hCy0gqpEfM+Z1n3lGxVYxp3PixugQueM96Ds+lMBOSVGMr
+# GZn1Z/TTxkINLFcv6+BfpLjVx3YgjrS5oIS4TVy4qj+BEnZNsfdTsm3VOjRi5NiO
+# 6sDcisJZ5xZUpVfg1TylSiihggKiMIICngYJKoZIhvcNAQkGMYICjzCCAosCAQEw
 # aDBSMQswCQYDVQQGEwJCRTEZMBcGA1UEChMQR2xvYmFsU2lnbiBudi1zYTEoMCYG
 # A1UEAxMfR2xvYmFsU2lnbiBUaW1lc3RhbXBpbmcgQ0EgLSBHMgISESHWmadklz7x
 # +EJ+6RnMU0EUMAkGBSsOAwIaBQCggf0wGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEH
-# ATAcBgkqhkiG9w0BCQUxDxcNMTcwMjIyMTU1MjQ4WjAjBgkqhkiG9w0BCQQxFgQU
-# vwFjkqN1VmvuWnpsUOfGzihACYkwgZ0GCyqGSIb3DQEJEAIMMYGNMIGKMIGHMIGE
+# ATAcBgkqhkiG9w0BCQUxDxcNMTcwNjE0MjIwMDQzWjAjBgkqhkiG9w0BCQQxFgQU
+# pmpNTwD/jDYQHTs8/BKQrkMhhZkwgZ0GCyqGSIb3DQEJEAIMMYGNMIGKMIGHMIGE
 # BBRjuC+rYfWDkJaVBQsAJJxQKTPseTBsMFakVDBSMQswCQYDVQQGEwJCRTEZMBcG
 # A1UEChMQR2xvYmFsU2lnbiBudi1zYTEoMCYGA1UEAxMfR2xvYmFsU2lnbiBUaW1l
 # c3RhbXBpbmcgQ0EgLSBHMgISESHWmadklz7x+EJ+6RnMU0EUMA0GCSqGSIb3DQEB
-# AQUABIIBAKyZQbBlw1PPX2fgepDGGsdlhqYPc7GiXULFfidcraJney0oxjE7nhkE
-# OpHLJYpDujB55vjclJsm1mIudfX/V4qG4/4dWxOzbptQJQGolv6iOG3kBa1m0qR/
-# lW9Ac2K0qRb+PZWP2/KriA9SW2BGfbZa/gQgc1DpEa8wKyP6uDMeR8rV9tL7CCJ5
-# h/8Iyf81+fds++PLKQcgbohRSG5voL9JruHSMHoVdXbUnJHmnigN2xVpZ0zo1l6U
-# 8blYF60BoKVKFDm8AXaF2pdRBfpovGNKNDgp17LZXufcOhn8EVhC/KVVLL2OLXVW
-# o5myvJmKlC++dThXvd5fGhBOLdOHcOM=
+# AQUABIIBADdJmTXv7abajBKZ0Q98z2ibo9aNH4ynhsYz1Obp/+Gs5WVwvltRH5Yg
+# ynQu3PRw/OXRkc0CbhiVgyzxgupjeUTSyHUhXRHsIedBaYOWo8lEMYm8I5fkQ5Rh
+# 2yRw5QV5uaWDaHZimqoYwASgGnfPnEuyeQLLfvnB3Z50pdyw1yyxvzblXx2qZt7T
+# Pt1E3FYoyOvburSxRmuO8zAtdZ54KwTQUm6e5AUKQZlPP7P6zf3aQ71t1GgALK/V
+# Tf742lxBBi0fumFy21qvHF1RGrfOC3i6eQ7JUaWwtHNl9hSbMSoYsMRXS/BcB9Ai
+# p0wfcvGY8hzJl+nupxqw1us0PrOCBDE=
 # SIG # End signature block

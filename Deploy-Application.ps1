@@ -50,7 +50,7 @@ Param (
 
 Try {
 	## Set the script execution policy for this process
-	Try { Set-ExecutionPolicy -ExecutionPolicy 'ByPass' -Scope 'Process' -Force -ErrorAction 'Stop' } Catch {}
+	Try { Set-ExecutionPolicy -ExecutionPolicy 'ByPass' -Scope 'Process' -Force -ErrorAction 'Stop' } Catch { Write-Error "Failed to set the execution policy to Bypass for this process." }
 
 	##*===============================================
 	##* VARIABLE DECLARATION
@@ -58,12 +58,12 @@ Try {
 	## Variables: Application
 	[string]$appVendor = 'Microsoft'
 	[string]$appName = 'Power BI Desktop'
-	[string]$appVersion = '2.42.4611.901'
+	[string]$appVersion = '2.53.4954.621'
 	[string]$appArch = 'x64'
 	[string]$appLang = 'EN'
 	[string]$appRevision = '01'
-	[string]$appScriptVersion = '1.0.0'
-	[string]$appScriptDate = '01/27/2017'
+	[string]$appScriptVersion = '1.1.0'
+	[string]$appScriptDate = '12/20/2017'
 	[string]$appScriptAuthor = 'Jordan Hamilton'
 	##*===============================================
 	## Variables: Install Titles (Only set here to override defaults set by the toolkit)
@@ -78,8 +78,8 @@ Try {
 
 	## Variables: Script
 	[string]$deployAppScriptFriendlyName = 'Deploy Application'
-	[version]$deployAppScriptVersion = [version]'3.6.8'
-	[string]$deployAppScriptDate = '02/06/2016'
+	[version]$deployAppScriptVersion = [version]'3.6.9'
+	[string]$deployAppScriptDate = '02/12/2017'
 	[hashtable]$deployAppScriptParameters = $psBoundParameters
 
 	## Variables: Environment
@@ -111,8 +111,8 @@ Try {
 		##*===============================================
 		[string]$installPhase = 'Pre-Installation'
 
-		## Show Welcome Message, close Internet Explorer if required, allow up to 3 deferrals, verify there is enough disk space to complete the install, and persist the prompt
-		Show-InstallationWelcome -CloseApps 'pbidesktop' -CheckDiskSpace -PersistPrompt
+		## Show Welcome Message, close applications if required, verify there is enough disk space to complete the install, and persist the prompt
+		Show-InstallationWelcome -CloseApps 'excel,pbidesktop' -CheckDiskSpace -PersistPrompt
 
 		## Show Progress Message (with the default message)
 		Show-InstallationProgress
@@ -132,7 +132,10 @@ Try {
 		}
 
 		## <Perform Installation tasks here>
-		Execute-MSI -Action "Install" -Path "PBIDesktop_x64.msi" -Parameters "ACCEPT_EULA=1 REBOOT=ReallySuppress /QN" -PassThru
+		$exitCode = Execute-MSI -Action "Install" -Path "PBIDesktop_x64.msi" -Parameters "ACCEPT_EULA=1 DISABLE_UPDATE_NOTIFICATION=1 REBOOT=ReallySuppress /QN" -PassThru
+		If (($exitCode.ExitCode -ne "0") -and ($mainExitCode -ne "3010")) { $mainExitCode = $exitCode.ExitCode }
+		$exitCode = Execute-MSI -Action "Install" -Path "PowerBIpublisher_[32bit][en-us].msi" -Parameters "REBOOT=ReallySuppress /QN" -PassThru
+		If (($exitCode.ExitCode -ne "0") -and ($mainExitCode -ne "3010")) { $mainExitCode = $exitCode.ExitCode }
 
 		##*===============================================
 		##* POST-INSTALLATION
@@ -141,9 +144,9 @@ Try {
 
 		## <Perform Post-Installation tasks here>
 		Remove-File -Path "$envCommonDesktop\Power BI Desktop.lnk"
-		## Display a message at the end of the install
-		If (-not $useDefaultMsi) {}
 
+		## Display a message at the end of the install
+		If (-not $useDefaultMsi) {Show-InstallationPrompt -Message "'$appVendor' '$appName' '$appVersion' has been Sucessfully Installed." -ButtonRightText ‘OK’ -Icon Information -NoWait}
 	}
 	ElseIf ($deploymentType -ieq 'Uninstall')
 	{
@@ -152,8 +155,8 @@ Try {
 		##*===============================================
 		[string]$installPhase = 'Pre-Uninstallation'
 
-		## Show Welcome Message, close Internet Explorer with a 60 second countdown before automatically closing
-		Show-InstallationWelcome -CloseApps 'pbidesktop' -CloseAppsCountdown 60
+		## Show Welcome Message, close applications with a 60 second countdown before automatically closing
+		Show-InstallationWelcome -CloseApps 'excel,pbidesktop' -CloseAppsCountdown 60
 
 		## Show Progress Message (with the default message)
 		Show-InstallationProgress
@@ -173,7 +176,10 @@ Try {
 		}
 
 		# <Perform Uninstallation tasks here>
-		Execute-MSI -Action "Uninstall" -Path "PBIDesktop_x64.msi" -PassThru
+		$exitCode = Execute-MSI -Action "Uninstall" -Path "PBIDesktop_x64.msi" -PassThru
+		If (($exitCode.ExitCode -ne "0") -and ($mainExitCode -ne "3010")) { $mainExitCode = $exitCode.ExitCode }
+		$exitCode = Execute-MSI -Action "Uninstall" -Path  "PowerBIpublisher_[32bit][en-us].msi" -PassThru
+		If (($exitCode.ExitCode -ne "0") -and ($mainExitCode -ne "3010")) { $mainExitCode = $exitCode.ExitCode }
 
 		##*===============================================
 		##* POST-UNINSTALLATION
@@ -203,8 +209,8 @@ Catch {
 # SIG # Begin signature block
 # MIIU4wYJKoZIhvcNAQcCoIIU1DCCFNACAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCB8+jGsG7vlBW7p
-# QXrcsufPHMPJpmmzMS+oFbRT9jAMuqCCD4cwggQUMIIC/KADAgECAgsEAAAAAAEv
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCD38Oqq5T1V+f9I
+# umgoa/dDl31P2Deyyvs+nkD7QjK6lKCCD4cwggQUMIIC/KADAgECAgsEAAAAAAEv
 # TuFS1zANBgkqhkiG9w0BAQUFADBXMQswCQYDVQQGEwJCRTEZMBcGA1UEChMQR2xv
 # YmFsU2lnbiBudi1zYTEQMA4GA1UECxMHUm9vdCBDQTEbMBkGA1UEAxMSR2xvYmFs
 # U2lnbiBSb290IENBMB4XDTExMDQxMzEwMDAwMFoXDTI4MDEyODEyMDAwMFowUjEL
@@ -291,26 +297,26 @@ Catch {
 # FgNlZHUxGTAXBgoJkiaJk/IsZAEZFgltc3VkZW52ZXIxFTATBgoJkiaJk/IsZAEZ
 # FgV3aW5hZDEZMBcGA1UEAxMQd2luYWQtVk1XQ0EwMS1DQQITfwAAACITuo77mvOv
 # 9AABAAAAIjANBglghkgBZQMEAgEFAKBmMBgGCisGAQQBgjcCAQwxCjAIoAKAAKEC
-# gAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwLwYJKoZIhvcNAQkEMSIEIGts
-# 5zsLqgm7sh0Svxg4wr6crZSTmFepmMiLQ6sVbgQNMA0GCSqGSIb3DQEBAQUABIIB
-# AECiH/6TmKZP1KcOLLU3RO1qKDV98gDETOWe5zPypeRRXNKe++WzxKB+1MH480mF
-# KvUlP6uRjjs/6nyEqGY3mp0QUFVQ8TXzRXq+Vc73k6rryAZSHj6lVPzqDoxlxmLv
-# 7Ez+I/aFZwBpAJYuSc4dukE18Ej4gzHf5kwVeYJyPtYYnkFgevLXzm4VzcHQiznu
-# t7fLp5/ysOPmqr96Rss6uZsSrVeHro4hSwz0g/2u7UMvNbmv0eGSpAxfYIpVm4hF
-# XUI1PVGbcTVQk18dlACVZhfbVohl4AtMfCGTxrlnl1V7HUGipdhVg616ITbA2hu9
-# KSWq53np5RQ5qf4l37r5IH2hggKiMIICngYJKoZIhvcNAQkGMYICjzCCAosCAQEw
+# gAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwLwYJKoZIhvcNAQkEMSIEIORo
+# RhCpngkHz0yKQCtT9e/woB8ATsnueK5ooivALWNjMA0GCSqGSIb3DQEBAQUABIIB
+# AIycZlTXiHtd4FLnrOIeiCeL/5+6i/jItPbUpD5syHLgkDA4cIMIKbGRvVfJd/i+
+# ddJFMCJ+lYrMqlLmiHVO0GXrYuQcp92sch+Qz/7et1KgzTG9hC686Qda8zR7r1Mq
+# qzRdXOJCw6/dx7ZzWDkoTHuty8zUT79s7c/0ME1MGzBkWyWiJ275Cw7cwbTS6zkV
+# mrwqbUurO94wQ+p5OjqXHh4yi4gwleL7XF3UkW+o7CCGj7zohNGtfDvZJtGfM0e6
+# tQOdWE2/8XqXNxPtO104ao0jx8U0ISoYMNweLA1NwUgaTy8Zj5FhoP8KDcx/n15+
+# V9yvWl76DR1baQK85eIMYKmhggKiMIICngYJKoZIhvcNAQkGMYICjzCCAosCAQEw
 # aDBSMQswCQYDVQQGEwJCRTEZMBcGA1UEChMQR2xvYmFsU2lnbiBudi1zYTEoMCYG
 # A1UEAxMfR2xvYmFsU2lnbiBUaW1lc3RhbXBpbmcgQ0EgLSBHMgISESHWmadklz7x
 # +EJ+6RnMU0EUMAkGBSsOAwIaBQCggf0wGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEH
-# ATAcBgkqhkiG9w0BCQUxDxcNMTcwMTI3MjI0MTUxWjAjBgkqhkiG9w0BCQQxFgQU
-# jprInsSXad+g3vWEf2q6wEgLBn0wgZ0GCyqGSIb3DQEJEAIMMYGNMIGKMIGHMIGE
+# ATAcBgkqhkiG9w0BCQUxDxcNMTcxMjIwMTUxNTE2WjAjBgkqhkiG9w0BCQQxFgQU
+# ThVM13iH5NntR+QellMTNRzrw1swgZ0GCyqGSIb3DQEJEAIMMYGNMIGKMIGHMIGE
 # BBRjuC+rYfWDkJaVBQsAJJxQKTPseTBsMFakVDBSMQswCQYDVQQGEwJCRTEZMBcG
 # A1UEChMQR2xvYmFsU2lnbiBudi1zYTEoMCYGA1UEAxMfR2xvYmFsU2lnbiBUaW1l
 # c3RhbXBpbmcgQ0EgLSBHMgISESHWmadklz7x+EJ+6RnMU0EUMA0GCSqGSIb3DQEB
-# AQUABIIBABcKeCi6xKnrcUmAqpX68LV+TdJb8Tng1jPYLg0BV2O2FXcrCgIYoU8D
-# Np9Fty2/90Ce6KMHFneH0+AAgujhCFGIHWJG/TUgnS+Dw19+5d0mhCvsZh97zriH
-# cJHCEK+C5iL8CenN/I9n0MWBseixHhCpw0nI0wupiDUosIiNDUnVuiZ3kRjrpAeH
-# VRY9YYnXgY/wuS5G6LDCyooEGsZz1TiSe0h8JxIW3lashQp9YHskmF3CNahBCuZJ
-# su5IcAPply2G3AXWWq/EMuBvIZdC5ElMUDBkU9Wy7rUEObSkvk/jAVeHEaD7AlvO
-# QiW5uXwJfM94cjnZEV2GWoC9x/Jioh8=
+# AQUABIIBAKsan36zynrK+Mpj+6mJzwOzLVCe9E13A5tbIlRFboJib7dUMRJTMxXx
+# w1TvK6X4O1xBZX/+oZeMBjsGmEq7ZuEQouCBn3JNvrDpPN751GwB1C9MMZewTHY9
+# U4O5ovIvVjF0RMVGYNoC37WaoZTM+TWPzVvHkAg/2sdCkj1kAJeERgZ4In9UCTwJ
+# M3SYICWiuTjPpiLFFExaT9O80wzfhm6ykRj1lmkczr7ykEc3Zsn06iwFONGiA2Us
+# n1KBV2v8FU85j3U3O9hQgAEX15bqfDQq8K3gkRXDWbnCFJZ4EtRUZ9SJaH91DFWe
+# ZTxsXNHjZPq3Kf5/h8TTsdsBfzFQgnY=
 # SIG # End signature block
