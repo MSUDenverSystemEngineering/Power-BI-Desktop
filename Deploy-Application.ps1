@@ -37,8 +37,11 @@
 .LINK
 	http://psappdeploytoolkit.com
 #>
-[CmdletBinding()]
+
+## Suppress PSScriptAnalyzer errors for not using declared variables during AppVeyor build
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseDeclaredVarsMoreThanAssignments", "", Justification="Suppress AppVeyor errors on unused variables below")]
+
+[CmdletBinding()]
 Param (
 	[Parameter(Mandatory=$false)]
 	[ValidateSet('Install','Uninstall','Repair')]
@@ -198,9 +201,6 @@ Try {
 		##* PRE-REPAIR
 		##*===============================================
 		[string]$installPhase = 'Pre-Repair'
-
-		## Show Welcome Message, close Internet Explorer with a 60 second countdown before automatically closing
-		Show-InstallationWelcome -CloseApps 'pbidesktop' -CloseAppsCountdown 60
 
 		## Show Progress Message (with the default message)
 		Show-InstallationProgress
@@ -454,12 +454,12 @@ Catch {
 # tsm/eaUymwG60Tz0jRscaowe27cJZenW5q87glyXbtC/02ZLNp1RAyD6za/zg/bf
 # 5OcUx7obSop/oare1kfPPomFSXcB1nnU1CG5hjZl+l1rI7J2IChLH+ZtXzwOcIRL
 # vvKrf2nd7rw9yFYzbBfoeJcpeGQHCHextuI=
-# SIG # End signature blo
+# SIG # End signature b
 # SIG # Begin signature block
 # MIImVgYJKoZIhvcNAQcCoIImRzCCJkMCAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCACDbkU0SHPsbcS
-# kRSJC5maujVAfwCxiQCzAgI6qYiYiaCCH8EwggVvMIIEV6ADAgECAhBI/JO0YFWU
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCACP4XdeUGP3nkj
+# M4suYh9ZmZisk+0P5SngtKlU/kfUfKCCH8EwggVvMIIEV6ADAgECAhBI/JO0YFWU
 # jTanyYqJ1pQWMA0GCSqGSIb3DQEBDAUAMHsxCzAJBgNVBAYTAkdCMRswGQYDVQQI
 # DBJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAOBgNVBAcMB1NhbGZvcmQxGjAYBgNVBAoM
 # EUNvbW9kbyBDQSBMaW1pdGVkMSEwHwYDVQQDDBhBQUEgQ2VydGlmaWNhdGUgU2Vy
@@ -633,32 +633,32 @@ Catch {
 # ZDErMCkGA1UEAxMiU2VjdGlnbyBQdWJsaWMgQ29kZSBTaWduaW5nIENBIFIzNgIR
 # AKVN33D73PFMVIK48rFyyjEwDQYJYIZIAWUDBAIBBQCggYQwGAYKKwYBBAGCNwIB
 # DDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEE
-# AYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAvBgkqhkiG9w0BCQQxIgQgRPHdCjN0KL37
-# 9RzKJJ1KWO3VcLmXlMR8ur+eEF9TXDEwDQYJKoZIhvcNAQEBBQAEggGAAIaNFvfi
-# 38zZN3BoWlHg8ycd5N8aq1xVq9h/WC7DLnb2CLl+ovSezI3a2pV9JjRhPFMlXiAK
-# IPmjG4rQ511iDrSl8XAxLvx9WcYYPLMlNS/UcN+YHT7s0gQrawbjpwBOUv0l6DcC
-# v6B32D4uBN1kdi5BBVnE56+6u6qfJT34XO9x7DXsXgWheDKUhtnfWvZxaK1AUprG
-# ekKJugMLIsRJqxK/pBY30V+Cxfj4PdkfhMpqnfgfRtKWzFyGSghI/ST9c5t8knJZ
-# D1L8ELeWPEU/boWCkSwpldf+eDoVUq5cpnZ/nAu/sIiRbGt1b9rG+CnW2fmvMWSz
-# P+2mSBNQNCMsmHD2eqw1FXKNAUA7fAhKBq73EDT5DAb13jvf72notvFyjfSE1Fsn
-# pAAMvNeR50ZqeLF/gsuLGHuiU2fKb+jGF5MDEjbXKIT6uqrEekEeJggARUESpuRM
-# MvqpRMNHONta5EalWelhHFxVrunsP8Y57fMPTPpOsD6AFp/830SogV6roYIDTDCC
+# AYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAvBgkqhkiG9w0BCQQxIgQgCUg+N13KR+x2
+# rcnqYm+8FcpfNdO/IFDCH2sDVsiLsc4wDQYJKoZIhvcNAQEBBQAEggGAihpLXdEq
+# IOVzVVwCIsg39bM4dVCMuNioamCIOD3bmBFjx2mTmPDz70z4IMA+j7YZaI6sL9BK
+# PxD6lU+zHJgQweDvL1aq11PN/12P8qo3wdbFZbgTzMWMRSccHcbZ2IC0Xmt3LUYd
+# mm94A0/bskHXjXlRiNf+bNKcGK36Y/+QCYGNbj7qg3GTM4IE9nY4fQa9HzkwoXBr
+# hB/lNm66HRoqLM/01sFJ6Yu7APwfEJBM2nMOixmost214feAeHsW8AGNujY/NSQr
+# dWaC2NVUMWRf9HYLwQXYMVORT2amTddK/+TFG6R9huP+b9LZSn4iZhlL1260K8oL
+# WjH1tH1OqRITYpAA9XyNZe7D1JWrEep4me2Oeepobw0wwa7RsIZ5NWxCGy9UCKsF
+# SJrdzOBol9PKYCT23nPSecO0lMjKl43GuC+TM2iRFWMoLxZnxvidZ9F9SJkbD+GO
+# UPAL8A6zEUia/r6UoZOpiTOsjGTYDb2ShbfWu0Phowsc3a88HmRcbOFSoYIDTDCC
 # A0gGCSqGSIb3DQEJBjGCAzkwggM1AgEBMIGSMH0xCzAJBgNVBAYTAkdCMRswGQYD
 # VQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAOBgNVBAcTB1NhbGZvcmQxGDAWBgNV
 # BAoTD1NlY3RpZ28gTGltaXRlZDElMCMGA1UEAxMcU2VjdGlnbyBSU0EgVGltZSBT
 # dGFtcGluZyBDQQIRAJA5f5rSSjoT8r2RXwg4qUMwDQYJYIZIAWUDBAICBQCgeTAY
-# BgkqhkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzAxMTAx
-# OTIxMTJaMD8GCSqGSIb3DQEJBDEyBDDlF8zCckClghoqRZJmRbY2aqBubIvwLBeT
-# ZG78VmuFvl4zkDR1vCUoS4UHKMiHY4EwDQYJKoZIhvcNAQEBBQAEggIAUz3FNYNp
-# yrhkCv7DZz3yD6bL2I5NO6mseDBQLFcxPcxzUEVxS2xiuyBHurILQ3hoV1eZ8ltM
-# JJy/3UdpquyjU5k2Reokm7Iye974wlyCWjpBazqQtgQ9jfjXOOwzyL2ir4CejFMx
-# T32rCVS/avTxt+2jzrxIIJsweBEaXF2rdFpzIgT2OhcpgJT7PySrV8b8IAHtOAnK
-# +XySLikopC95x3Yc5t/QD9/zxRJTkZBOR4otwbcWpjyJlbNT0iVGkgTzImnX/BlO
-# zf5Y8hi0EpjFVQuP7gheZTeKuLhifp9An3N2uCc0MKkFF1lMJKcOVxwfVsIW5O4d
-# An0+3I8FEDCzX0NSBvmmi6gVMKK24gv0/jFNJdZfbkS+lh2gCPsGgdjUvLyswBGw
-# lOQGs0oYfGzVA5gBw9k/FaLGc076EfhWAW3/97tU0mUURzXY7dpFM+41fDBEZNpu
-# PiZINQEo2jPJBhwvPXbOAVAijjACGA9XRa1XZym8o2PIAg552V0A8IGCVWPigkfJ
-# zEJ+zC3MuZPW92ztFyOvgB9fLQKZqfqBi76AA0045Vc7zjfJv6jpcLvqUifn1BiB
-# iwYTfAE9ij8Pmp9hp4mGAgggqQqVn4+CVQ5TZ5H0knU9Jgrj4jqIjbjo7Xb3sf82
-# sA6zIjkPEZNPxomWVkrRCr/3IERijMxPd5A=
+# BgkqhkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzAxMTIx
+# OTU5MjhaMD8GCSqGSIb3DQEJBDEyBDDd0HfEdYsHZ9xCfVhSGRNCkf/tytVEAvot
+# ecULIjeLbYEKfCQYuDJR0VhM4fOnFAAwDQYJKoZIhvcNAQEBBQAEggIAM09Aq/sf
+# yhp974XJR47Qbw0Q/xieJ9eIllwmHda1ZHdZKFM6Oe14aJ/RIPoEvB9FXQvckixf
+# sMhFde/syXIlEZwFFkjZCBA1MhLAHmcCkCh98bCD34XJ3OJb38Kc8bzqMvsKkX8X
+# BCVOIwJW144EgkUi5EhsmL/6NaGnUulEqBtpXK2sjNcXoj2polnx/+eeVXnhEjy5
+# 6eDqjdPyHt4Ig+Ul3+Y6LG+pXRviNI4hyfLSzAsEoxfcM1k0dgIM/Hwj9kzFfAy/
+# rFvCNEGKBv49VQZpWHnuwJmwtsK9rYZ+UMiVJ+WC/ttApoTyh7/ZmmAzjQnpg0OZ
+# jndbeRCtTVmkfs88qMAy0Hxremk7Fm/9v6JBOOSho6dKECoZ063ns59KqaTSdV3O
+# sMyFmloHFbSRvvYGym8aD2SMvGAcMGgS4X1KUtOgNZ0J1/x643CHMjDb2y+14j/q
+# R0TjlVreFivF5a7m7I+72rn2xeLhsIvOxAy0rjemnFtC3Y5k3sUDwKaxWicbrovc
+# /wqQIujuxnk1pkemPesb5+Q49PWFj0Tx5+Au0Zg9WRKRc+hpvoCjV2OcG1qba2Em
+# D/a/U9+drPT+u7BE+Ugaqbgqkq4QsUCbdqSY1GlT+rg9BvJT3LZ1INNsuR1vPh0+
+# O5xxrRsPIgo+8uMsYYVqJPK6ejc0Ys8zhbM=
 # SIG # End signature block
